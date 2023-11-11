@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DiscoveryService {
+  private url: string;
   private name: string;
   private version: string;
   private intervalInMilis: number;
@@ -23,6 +24,13 @@ export class DiscoveryService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
+    this.url = `
+      ${this.configService.get<string>(
+        'SERVICE_PROTOCOL',
+      )}://${this.configService.get<string>(
+        'SERVICE_HOST',
+      )}:${this.configService.get<number>('SERVICE_PORT')}`;
+
     this.name = this.configService.get<string>('SERVICE_NAME');
     this.version = this.configService.get<string>('SERVICE_VERSION');
     this.intervalInMilis = this.configService.get<number>(
@@ -36,7 +44,7 @@ export class DiscoveryService {
   async register(port: number) {
     try {
       await this.httpService.axiosRef.put(
-        `http://127.0.0.1:3000/${this.name}/${this.version}/${port}`,
+        `${this.url}/${this.name}/${this.version}/${port}`,
       );
       console.log(`registered service ${this.name}:${this.version} at ${port}`);
     } catch (error) {
@@ -47,7 +55,7 @@ export class DiscoveryService {
   async unregister(port: number) {
     await firstValueFrom(
       this.httpService.delete(
-        `http://127.0.0.1:3000/${this.name}/${this.version}/${port}`,
+        `${this.url}/${this.name}/${this.version}/${port}`,
       ),
     );
 
