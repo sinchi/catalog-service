@@ -41,7 +41,7 @@ export class DiscoveryService {
     );
   }
 
-  async register(port: number) {
+  private async register(port: number) {
     try {
       await this.httpService.axiosRef.put(
         `${this.url}/${this.name}/${this.version}/${port}`,
@@ -52,7 +52,7 @@ export class DiscoveryService {
     }
   }
 
-  async unregister(port: number) {
+  private async unregister(port: number) {
     await firstValueFrom(
       this.httpService.delete(
         `${this.url}/${this.name}/${this.version}/${port}`,
@@ -62,7 +62,7 @@ export class DiscoveryService {
     console.log(`unregistred service ${this.name}:${this.version} at ${port}`);
   }
 
-  startInterval(port: number): void {
+  private startInterval(port: number): void {
     this.intervalSubscription = interval(this.intervalInMilis)
       .pipe(
         switchMap(() => {
@@ -77,14 +77,29 @@ export class DiscoveryService {
       .subscribe();
   }
 
-  stopInterval(): void {
+  private stopInterval(): void {
     if (this.intervalSubscription && !this.intervalSubscription.closed) {
       this.intervalSubscription.unsubscribe();
     }
   }
 
-  async cleanup(port: number) {
+  private async cleanup(port: number) {
     this.stopInterval();
     await this.unregister(port);
+  }
+
+  async start(port: number) {
+    await this.register(port);
+    this.startInterval(port);
+
+    process.on('uncaughtException', async () => {
+      await this.cleanup(port);
+      process.exit(0);
+    });
+
+    process.on('SIGINT', async () => {
+      await this.cleanup(port);
+      process.exit(0);
+    });
   }
 }
