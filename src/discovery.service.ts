@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   Subscription,
   firstValueFrom,
@@ -19,6 +19,7 @@ export class DiscoveryService {
   private intervalInMilis: number;
   private numberOfretryWhenFailed: number;
   private intervalSubscription: Subscription;
+  private logger = new Logger('DiscoveryService');
 
   constructor(
     private readonly httpService: HttpService,
@@ -46,9 +47,11 @@ export class DiscoveryService {
       await this.httpService.axiosRef.put(
         `${this.url}/${this.name}/${this.version}/${port}`,
       );
-      console.log(`registered service ${this.name}:${this.version} at ${port}`);
+      this.logger.log(
+        `registered service ${this.name}:${this.version} at ${port}`,
+      );
     } catch (error) {
-      console.error(error.message);
+      this.logger.error(error.message);
     }
   }
 
@@ -59,7 +62,9 @@ export class DiscoveryService {
       ),
     );
 
-    console.log(`unregistred service ${this.name}:${this.version} at ${port}`);
+    this.logger.log(
+      `unregistred service ${this.name}:${this.version} at ${port}`,
+    );
   }
 
   private startInterval(port: number): void {
